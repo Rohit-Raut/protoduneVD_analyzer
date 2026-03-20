@@ -1,4 +1,6 @@
 void Efficiency_data(){
+
+    //efficency plot   
     TFile* cosmic = TFile::Open("../Cosmic_MC_mergecoll_8M.root", "READ");
     TFile* nu = TFile::Open("../NU+cosmic_MC_Mergecoll_8M.root", "READ");
     if (!cosmic || !nu || cosmic->IsZombie() || nu->IsZombie()){
