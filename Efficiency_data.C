@@ -30,8 +30,8 @@ TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData, const std:
 }
 
 void efficiencyBDE() {
-    TFile* cosmic   = TFile::Open("../cosmic_mergecoll.root", "READ");
-    TFile* neutrino = TFile::Open("../nu_mergecoll.root", "READ");
+    TFile* cosmic   = TFile::Open("../Cosmic_MC_3ms.root", "READ");
+    TFile* neutrino = TFile::Open("../Nu_Cosmic_MC_3ms.root", "READ");
 
     if (!cosmic || cosmic->IsZombie() || !neutrino || neutrino->IsZombie()) {
         std::cout << "Error reading files" << std::endl;
@@ -63,24 +63,24 @@ void efficiencyBDE() {
         taTreeCosmic->GetEntry(i);
         if (!taADCSumVec || !taChannelPeakVec) continue;
 
-        for (size_t k = 0; k< taADCSumVec->size(); ++k){
-            if(isBDE((int)(*taChannelPeakVec)[k])){
-                cosmicBDE.push_back((*taADCSumVec)[k]);
-            }
-        }
-        // find single best TA across ALL TAs in event
-        //int    bestIdx = -1;
-        //double bestSum = -1.0;
-        //for (size_t k = 0; k < taADCSumVec->size(); ++k) {
-        //    if ((*taADCSumVec)[k] > bestSum) {
-        //        bestSum = (*taADCSumVec)[k];
-        //        bestIdx = (int)k;
+        //for (size_t k = 0; k< taADCSumVec->size(); ++k){
+        //    if(isBDE((int)(*taChannelPeakVec)[k])){
+        //        cosmicBDE.push_back((*taADCSumVec)[k]);
         //    }
         //}
+        // find single best TA across ALL TAs in event
+        int    bestIdx = -1;
+        double bestSum = -1.0;
+        for (size_t k = 0; k < taADCSumVec->size(); ++k) {
+            if ((*taADCSumVec)[k] > bestSum) {
+                bestSum = (*taADCSumVec)[k];
+                bestIdx = (int)k;
+            }
+        }
 
-        //// only keep if best TA is in BDE
-        //if (bestIdx >= 0 && isBDE((int)(*taChannelPeakVec)[bestIdx]))
-        //    cosmicBDE.push_back(bestSum);
+        // only keep if best TA is in BDE
+        if (bestIdx >= 0 && isBDE((int)(*taChannelPeakVec)[bestIdx]))
+            cosmicBDE.push_back(bestSum);
     }
 
     // ===== Neutrino =====
@@ -91,22 +91,22 @@ void efficiencyBDE() {
         taTreeNeutrino->GetEntry(i);
         if (!taADCSumVec || !taChannelPeakVec) continue;
 
-        for (size_t k = 0; k< taADCSumVec->size(); ++k){
-            if(isBDE((int)(*taChannelPeakVec)[k])){
-                neutrinoBDE.push_back((*taADCSumVec)[k]);
-            }
-        }
-        //int    bestIdx = -1;
-        //double bestSum = -1.0;
-        //for (size_t k = 0; k < taADCSumVec->size(); ++k) {
-        //    if ((*taADCSumVec)[k] > bestSum) {
-        //        bestSum = (*taADCSumVec)[k];
-        //        bestIdx = (int)k;
+        //for (size_t k = 0; k< taADCSumVec->size(); ++k){
+        //    if(isBDE((int)(*taChannelPeakVec)[k])){
+        //        neutrinoBDE.push_back((*taADCSumVec)[k]);
         //    }
         //}
+        int    bestIdx = -1;
+        double bestSum = -1.0;
+        for (size_t k = 0; k < taADCSumVec->size(); ++k) {
+            if ((*taADCSumVec)[k] > bestSum) {
+                bestSum = (*taADCSumVec)[k];
+                bestIdx = (int)k;
+            }
+        }
 
-        //if (bestIdx >= 0 && isBDE((int)(*taChannelPeakVec)[bestIdx]))
-        //    neutrinoBDE.push_back(bestSum);
+        if (bestIdx >= 0 && isBDE((int)(*taChannelPeakVec)[bestIdx]))
+            neutrinoBDE.push_back(bestSum);
     }
 
     std::sort(cosmicBDE.begin(),   cosmicBDE.end());
@@ -114,8 +114,8 @@ void efficiencyBDE() {
     auto countAbove8M = [](const std::vector<Double_t>&v ,double thr){
         return std::distance(std::lower_bound(v.begin(), v.end(), thr), v.end());
     };
-    std::cout<<"Cosmic above 8M: "<<countAbove8M(cosmicBDE, 8e6) << "\n";
-    std::cout<<"Nu Above 8M : "<<countAbove8M(neutrinoBDE, 8e6) <<"\n";
+    std::cout<<"Cosmic above 8M: "<<countAbove8M(cosmicBDE, 1e6) << "\n";
+    std::cout<<"Nu Above 8M : "<<countAbove8M(neutrinoBDE, 1e6) <<"\n";
 
 
     std::cout << "\n======== BDE Event Count ========\n";
@@ -156,7 +156,7 @@ void efficiencyBDE() {
     plotPad->cd();
     plotPad->SetRightMargin(0.08);
     plotPad->SetLeftMargin(0.12);
-    plotPad->SetLogy();
+    //plotPad->SetLogy();
     effCos->SetLineColor(kBlue);  effCos->SetLineWidth(3);
     effCos->SetMarkerStyle(20);   effCos->SetMarkerSize(0.7);
     effCos->SetMarkerColorAlpha(kBlue, 0.6);
@@ -182,5 +182,5 @@ void efficiencyBDE() {
     leg->AddEntry(effNeu,"#nu + Cosmic", "lp");
     leg->Draw();
 
-    c->SaveAs("efficiency_BDE.png");
+    c->SaveAs("efficiency_BDE_best.png");
 }
