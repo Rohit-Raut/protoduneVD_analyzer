@@ -119,8 +119,8 @@ void efficiencyBDE() {
 
 
     std::cout << "\n======== BDE Event Count ========\n";
-    std::cout << "Cosmic   events where best TA in BDE: " << cosmicBDE.size()   << "\n";
-    std::cout << "Neutrino events where best TA in BDE: " << neutrinoBDE.size() << "\n";
+    std::cout << "Cosmic   events total TA in BDE: " << cosmicBDE.size()   << "\n";
+    std::cout << "Neutrino events total TA in BDE: " << neutrinoBDE.size() << "\n";
     std::cout << "=================================\n";
 
     const double thr_min    = 1e6;
@@ -128,6 +128,14 @@ void efficiencyBDE() {
 
     TGraph* effCos = calculateEfficiency(cosmicBDE,   neutrinoBDE, thr_min, nThreshold);
     TGraph* effNeu = calculateEfficiency(neutrinoBDE, cosmicBDE,   thr_min, nThreshold);
+
+    //to check the effeicny at 8M ADC count
+    double cosmicEff8M = 100.0*countAbove8M(cosmicBDE, 8e6)/(double)cosmicBDE.size();
+    double nuEff8M = 100.0*countAbove8M(neutrinoBDE, 8e6)/(double)neutrinoBDE.size();
+
+    std::cout<<"Cosmic Efficiency at 8M : "<<cosmicEff8M<<"\n"<<std::endl;
+    std::cout<<"Nu Efficiency at 8M: "<<nuEff8M<<"\n"<<std::endl;
+
 
     gStyle->SetOptStat(0);
     gStyle->SetTextFont(42);
@@ -182,5 +190,5 @@ void efficiencyBDE() {
     leg->AddEntry(effNeu,"#nu + Cosmic", "lp");
     leg->Draw();
 
-    c->SaveAs("efficiency_BDE_best.png");
+    //c->SaveAs("efficiency_BDE_best.png");
 }
