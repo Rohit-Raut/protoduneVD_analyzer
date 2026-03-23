@@ -12,6 +12,7 @@
 
 TGraph* calculateEfficiency(const std::vector<Double_t>& data, double thr_min, int nThreshold){
     double NTotal = static_cast<double>(data.size());
+    std::cout<<"Debugging NTotal: "<<NTotal<<std::endl;
     double thr_max = data.back();
     //double thr_max = 40e6;
     TGraph* eff = new TGraph();
@@ -35,7 +36,8 @@ void Efficiency_cosmic(){
     taTree->SetBranchAddress("channel_peak", &taChannelPeakVec);
 
     std::vector<Double_t> cosmicBDE;
-
+    std::cout<<"TRee Entries: "<<taTree->GetEntries()<<std::endl;
+    
     for(Long64_t i = 0; i<taTree->GetEntries(); ++i){
 	taTree->GetEntry(i);
 	if(!taADCSumVec || !taChannelPeakVec) continue;
@@ -54,14 +56,18 @@ void Efficiency_cosmic(){
     auto countAbove = [&](double thr){
 	return std::distance(std::lower_bound(cosmicBDE.begin(), cosmicBDE.end(), thr), cosmicBDE.end());
     };
+    
+    std::cout<<"Debug Cosmic BDE Size: "<<cosmicBDE.size()<<std::endl;
+
+
     double eff8M = 100.0 * countAbove(8e6) / (double)cosmicBDE.size();
     std::cout << "\n======== BDE Cosmic Only ========\n";
-    std::cout << "Total events with best TA in BDE: " << cosmicBDE.size() << "\n";
+    std::cout << "Total events BDE at 8M: " << countAbove(8e6) << "\n";
     std::cout << "Efficiency at 8M ADC: " << eff8M << " %\n";
     std::cout << "=================================\n";
 
     const double thr_min = 1e6;
-    const int nThreshold = 300;
+    const int nThreshold = 40;
     TGraph* effCos = calculateEfficiency(cosmicBDE, thr_min, nThreshold);
     gStyle->SetOptStat(0);
 
@@ -74,6 +80,6 @@ void Efficiency_cosmic(){
     effCos->GetHistogram()->SetMinimum(0);
     effCos->GetHistogram()->SetMaximum(105);
     effCos->GetXaxis()->SetLimits(1e5, 12e6);
-    effCos->Draw("AL");
+    effCos->Draw("ALP");
     c->SaveAs("Efficiency_Cosmic.png");
 }
