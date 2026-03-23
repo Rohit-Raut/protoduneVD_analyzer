@@ -1,3 +1,4 @@
+#include "utils_NP02.hpp"
 #include "TFile.h"
 #include "TTree.h"
 #include "TCanvas.h"
@@ -12,7 +13,8 @@
 
 TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData, const std::vector<Double_t>& otherData, double thr_min, int nThreshold) {
     auto it_primary = std::lower_bound(primaryData.begin(), primaryData.end(), thr_min);
-    double Nprimary = static_cast<double>(primaryData.size());
+    //double Nprimary = static_cast<double>(primaryData.size());
+    double Nprimary = 10000.0; 
     double thr_max  = std::max(primaryData.back(), otherData.back());
 
     auto count_above = [](const std::vector<Double_t>& v, auto from, double thr) {
@@ -31,8 +33,8 @@ TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData, const std:
 
 void efficiencyBDE() {
     //TFile* cosmic   = TFile::Open("../Cosmic_MC_3ms.root", "READ");
-    TFile* cosmic = TFile::Open("../yk_cosmic_sample.root", "READ");
-    TFile* neutrino = TFile::Open("../Nu_Cosmic_MC_3ms.root", "READ");
+    TFile* neutrino = TFile::Open("../Nu+Cosmic_Pdune_1MADC_20kticks.root", "READ");
+    TFile* cosmic = TFile::Open("../Cosmic_Pdune_1MADC_20kticks_10k.root", "READ");
 
     if (!cosmic || cosmic->IsZombie() || !neutrino || neutrino->IsZombie()) {
         std::cout << "Error reading files" << std::endl;
@@ -73,15 +75,19 @@ void efficiencyBDE() {
         int    bestIdx = -1;
         double bestSum = -1.0;
         for (size_t k = 0; k < taADCSumVec->size(); ++k) {
-            if ((*taADCSumVec)[k] > bestSum) {
-                bestSum = (*taADCSumVec)[k];
-                bestIdx = (int)k;
-            }
+            if(NP02::isBDE((int)(*taChannelPeakVec)[k]) && (*taADCSumVec)[k]>bestSum){
+		bestSum = (*taADCSumVec)[k];
+		bestIdx = (int)k;
+	    }
+	    //if ((*taADCSumVec)[k] > bestSum) {
+            //    bestSum = (*taADCSumVec)[k];
+            //    bestIdx = (int)k;
+            //}
         }
+	if(bestIdx>=0)
+	    cosmicBDE.push_back(bestSum);
 
         // only keep if best TA is in BDE
-        if (bestIdx >= 0 && isBDE((int)(*taChannelPeakVec)[bestIdx]))
-            cosmicBDE.push_back(bestSum);
     }
 
     // ===== Neutrino =====
@@ -100,14 +106,20 @@ void efficiencyBDE() {
         int    bestIdx = -1;
         double bestSum = -1.0;
         for (size_t k = 0; k < taADCSumVec->size(); ++k) {
-            if ((*taADCSumVec)[k] > bestSum) {
-                bestSum = (*taADCSumVec)[k];
-                bestIdx = (int)k;
-            }
+            //if ((*taADCSumVec)[k] > bestSum) {
+            //    bestSum = (*taADCSumVec)[k];
+            //    bestIdx = (int)k;
+            //}
+	    if(NP02::isBDE((int)(*taChannelPeakVec)[k]) && (*taADCSumVec)[k] > bestSum){
+		bestSum = (*taADCSumVec)[k];
+		bestIdx = (int)k;
+	    }
         }
+	if(bestIdx>=0)
+	    neutrinoBDE.push_back(bestSum);
 
-        if (bestIdx >= 0 && isBDE((int)(*taChannelPeakVec)[bestIdx]))
-            neutrinoBDE.push_back(bestSum);
+        //if (bestIdx >= 0 && isBDE((int)(*taChannelPeakVec)[bestIdx]))
+        //    neutrinoBDE.push_back(bestSum);
     }
 
     std::sort(cosmicBDE.begin(),   cosmicBDE.end());
@@ -125,7 +137,10 @@ void efficiencyBDE() {
     std::cout << "=================================\n";
 
     const double thr_min    = 1e6;
-    const int    nThreshold = 200;
+    const double thr_max    = 40e6;
+    const double steps = 0.1e6;
+    const int nThreshold = (int)((thr_max-thr_min)/steps)+1; 
+    //const int    nThreshold = 200;
 
     TGraph* effCos = calculateEfficiency(cosmicBDE,   neutrinoBDE, thr_min, nThreshold);
     TGraph* effNeu = calculateEfficiency(neutrinoBDE, cosmicBDE,   thr_min, nThreshold);

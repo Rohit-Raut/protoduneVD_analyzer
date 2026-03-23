@@ -44,12 +44,12 @@ void Efficiency_cosmic(){
 	int bestIdx = -1;
 	double bestSum = -1.0;
 	for(size_t k =0; k<taADCSumVec->size(); ++k){
-	    if((*taADCSumVec)[k]>bestSum){
+	    if(NP02::isBDE((int)(*taChannelPeakVec)[k]) && (*taADCSumVec)[k]>bestSum){
 		bestSum = (*taADCSumVec)[k];
 		bestIdx = (int)k;
 	    }
 	}
-	if (bestIdx >= 0 && NP02::isBDE((int)(*taChannelPeakVec)[bestIdx]))
+	if(bestIdx >=0)
 	    cosmicBDE.push_back(bestSum);
     }
     std::sort(cosmicBDE.begin(), cosmicBDE.end());
