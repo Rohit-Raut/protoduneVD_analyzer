@@ -30,7 +30,8 @@ TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData, const std:
 }
 
 void efficiencyBDE() {
-    TFile* cosmic   = TFile::Open("../Cosmic_MC_3ms.root", "READ");
+    //TFile* cosmic   = TFile::Open("../Cosmic_MC_3ms.root", "READ");
+    TFile* cosmic = TFile::Open("../yk_cosmic_sample.root", "READ");
     TFile* neutrino = TFile::Open("../Nu_Cosmic_MC_3ms.root", "READ");
 
     if (!cosmic || cosmic->IsZombie() || !neutrino || neutrino->IsZombie()) {
