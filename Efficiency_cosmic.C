@@ -12,7 +12,7 @@
 
 TGraph* calculateEfficiency(const std::vector<Double_t>& data, double thr_min, int nThreshold){
     //double NTotal = static_cast<double>(data.size());
-    double NTotal = 520;
+    double NTotal = 540;
     std::cout<<"Debugging NTotal: "<<NTotal<<std::endl;
     double thr_max = data.back();
     //double thr_max = 40e6;
