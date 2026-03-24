@@ -11,7 +11,8 @@
 
 
 TGraph* calculateEfficiency(const std::vector<Double_t>& data, double thr_min, int nThreshold){
-    double NTotal = static_cast<double>(data.size());
+    //double NTotal = static_cast<double>(data.size());
+    double NTotal = 520;
     std::cout<<"Debugging NTotal: "<<NTotal<<std::endl;
     double thr_max = data.back();
     //double thr_max = 40e6;
@@ -67,7 +68,10 @@ void Efficiency_cosmic(){
     std::cout << "=================================\n";
 
     const double thr_min = 1e6;
-    const int nThreshold = 40;
+    const double thr_max = 20e6;
+    const double steps = 0.4e6;
+    const int nThreshold = (int)((thr_max-thr_min)/steps)+1;
+    //const int nThreshold = 40;
     TGraph* effCos = calculateEfficiency(cosmicBDE, thr_min, nThreshold);
     gStyle->SetOptStat(0);
 
