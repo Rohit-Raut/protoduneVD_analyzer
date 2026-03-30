@@ -15,6 +15,7 @@ TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData, const std:
     auto it_primary = std::lower_bound(primaryData.begin(), primaryData.end(), thr_min);
     //double Nprimary = static_cast<double>(primaryData.size());
     double Nprimary = 10000.0; 
+
     double thr_max  = std::max(primaryData.back(), otherData.back());
 
     auto count_above = [](const std::vector<Double_t>& v, auto from, double thr) {
