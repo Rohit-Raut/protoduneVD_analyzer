@@ -11,14 +11,11 @@
 #include <vector>
 #include <algorithm>
 
-TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData,
-                            const std::vector<Double_t>& otherData,
-                            double thr_min, int nThreshold,
-                            double Ntotal) {
-
+TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData, const std::vector<Double_t>& otherData, double thr_min, int nThreshold, double Nprimary) {
     auto it_primary = std::lower_bound(primaryData.begin(), primaryData.end(), thr_min);
 
     double thr_max = std::max(primaryData.back(), otherData.back());
+
     auto count_above = [](const std::vector<Double_t>& v, auto from, double thr) {
         return (double)std::distance(std::lower_bound(from, v.end(), thr), v.end());
     };
@@ -27,19 +24,18 @@ TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData,
     for (int j = 0; j < nThreshold; j++) {
         double thr        = thr_min + j * (thr_max - thr_min) / (nThreshold - 1);
         double countA     = count_above(primaryData, it_primary, thr);
-        double efficiency = (Ntotal > 0) ? 100.0 * (countA / Ntotal) : 0.0;
+        double efficiency = (Nprimary > 0) ? 100.0 * (countA / Nprimary) : 0.0;
         eff->SetPoint(j, thr, efficiency);
     }
     return eff;
 }
 
-// Extract best BDE TA per event from a TTree
-void fillBestBDE(TTree* tree, std::vector<Double_t>& out) {
+void fillBDEVector(TTree* tree, std::vector<Double_t>& bdeVec) {
     std::vector<double>*    taADCSumVec      = nullptr;
     std::vector<ULong64_t>* taChannelPeakVec = nullptr;
 
-    tree->SetBranchAddress("adc_integral",  &taADCSumVec);
-    tree->SetBranchAddress("channel_peak",  &taChannelPeakVec);
+    tree->SetBranchAddress("adc_integral", &taADCSumVec);
+    tree->SetBranchAddress("channel_peak", &taChannelPeakVec);
 
     for (Long64_t i = 0; i < tree->GetEntries(); ++i) {
         tree->GetEntry(i);
@@ -54,27 +50,26 @@ void fillBestBDE(TTree* tree, std::vector<Double_t>& out) {
             }
         }
         if (bestIdx >= 0)
-            out.push_back(bestSum);
+            bdeVec.push_back(bestSum);
     }
+    std::sort(bdeVec.begin(), bdeVec.end());
 }
 
-void efficiencyBDE() {
-    TFile* cosmic   = TFile::Open("../Cosmic_Pdune_1MADC_20kticks_10k.root", "READ");
-    TFile* neutrino = TFile::Open("../Nu+Cosmic_Pdune_1MADC_20kticks.root",  "READ");
-    TFile* hnl = TFile::Open("/home/rraut/trigger_overlay/ta_result.root", "READ");
-    //TFile* hnl      = TFile::Open("/project/dune/pdvd_hnls_bsm_flux/HNL_Data/run_hnl_1k_sample.root", "READ");
+void efficiency_hnl_nu_cos() {
 
-    if (!cosmic || cosmic->IsZombie() ||
-        !neutrino || neutrino->IsZombie() ||
-        !hnl || hnl->IsZombie()) {
+    TFile* cosmic   = TFile::Open("../Cosmic_Pdune_1MADC_20kticks_10k.root", "READ");
+    TFile* neutrino = TFile::Open("../Nu+Cosmic_Pdune_1MADC_20kticks.root", "READ");
+    TFile* hnl      = TFile::Open("../hnl_cosmic_nu_mc.root", "READ");
+
+    if (!cosmic || cosmic->IsZombie() || !neutrino || neutrino->IsZombie() || !hnl || hnl->IsZombie()) {
         std::cout << "Error reading files" << std::endl;
         return;
     }
 
     TTree* taTreeCosmic   = (TTree*) cosmic->Get("hitdQ/TATree");
     TTree* taTreeNeutrino = (TTree*) neutrino->Get("hitdQ/TATree");
-    //TTree* taTreeHNL      = (TTree*) hnl->Get("hitdQ/TATree");
-    TTree* taTreeHNL 	= (TTree*)hnl->Get("TATree");
+    TTree* taTreeHNL      = (TTree*) hnl->Get("hitdQ/TATree");
+
     if (!taTreeCosmic || !taTreeNeutrino || !taTreeHNL) {
         std::cout << "Could not find TA trees" << std::endl;
         return;
@@ -84,13 +79,9 @@ void efficiencyBDE() {
     std::vector<Double_t> neutrinoBDE;
     std::vector<Double_t> hnlBDE;
 
-    fillBestBDE(taTreeCosmic,   cosmicBDE);
-    fillBestBDE(taTreeNeutrino, neutrinoBDE);
-    fillBestBDE(taTreeHNL,      hnlBDE);
-
-    std::sort(cosmicBDE.begin(),   cosmicBDE.end());
-    std::sort(neutrinoBDE.begin(), neutrinoBDE.end());
-    std::sort(hnlBDE.begin(),      hnlBDE.end());
+    fillBDEVector(taTreeCosmic,   cosmicBDE);
+    fillBDEVector(taTreeNeutrino, neutrinoBDE);
+    fillBDEVector(taTreeHNL,      hnlBDE);
 
     auto countAbove = [](const std::vector<Double_t>& v, double thr) {
         return std::distance(std::lower_bound(v.begin(), v.end(), thr), v.end());
@@ -99,47 +90,30 @@ void efficiencyBDE() {
     std::cout << "\n======== BDE Event Count ========\n";
     std::cout << "Cosmic   events with TA in BDE: " << cosmicBDE.size()   << "\n";
     std::cout << "Neutrino events with TA in BDE: " << neutrinoBDE.size() << "\n";
-    std::cout << "HNL      events with TA in BDE: " << hnlBDE.size()      << "\n";
-    std::cout << "=================================\n";
+    std::cout << "HNL      events with TA in BDE: " << hnlBDE.size()     << "\n";
+    std::cout << "=================================\n\n";
 
-    std::cout << "Cosmic   above 1M: " << countAbove(cosmicBDE,   1e6) << "\n";
-    std::cout << "Neutrino above 1M: " << countAbove(neutrinoBDE, 1e6) << "\n";
-    std::cout << "HNL      above 1M: " << countAbove(hnlBDE,      1e6) << "\n";
+    std::cout << "Cosmic   above 8M: " << countAbove(cosmicBDE,   8e6) << "\n";
+    std::cout << "Neutrino above 8M: " << countAbove(neutrinoBDE, 8e6) << "\n";
+    std::cout << "HNL      above 8M: " << countAbove(hnlBDE,      8e6) << "\n\n";
 
-    // --- Efficiency curves ---
+    double cosmicEff8M = 100.0 * countAbove(cosmicBDE,   8e6) / 10000.0;
+    double nuEff8M     = 100.0 * countAbove(neutrinoBDE, 8e6) / 10000.0;
+    double hnlEff8M    = 100.0 * countAbove(hnlBDE,      8e6) / 935.0;
+
+    std::cout << "Cosmic   efficiency at 8M: " << cosmicEff8M << " %\n";
+    std::cout << "Neutrino efficiency at 8M: " << nuEff8M     << " %\n";
+    std::cout << "HNL      efficiency at 8M: " << hnlEff8M    << " %\n\n";
+
     const double thr_min = 1e6;
     const double thr_max = 40e6;
     const double steps   = 0.1e6;
     const int nThreshold = (int)((thr_max - thr_min) / steps) + 1;
 
-    // Global trigger efficiency: denominator = total simulated events
-    const double Ntotal_cosmic   = 10000.0;
-    const double Ntotal_neutrino = 10000.0;
-    const double Ntotal_hnl      = 1000.0;
+    TGraph* effCos = calculateEfficiency(cosmicBDE,   neutrinoBDE, thr_min, nThreshold, 10000.0);
+    TGraph* effNeu = calculateEfficiency(neutrinoBDE, cosmicBDE,   thr_min, nThreshold, 10000.0);
+    TGraph* effHNL = calculateEfficiency(hnlBDE,      cosmicBDE,   thr_min, nThreshold, 935.0);
 
-    // For thr_max in calculateEfficiency we need a common upper bound
-    // Combine all three into a dummy "other" so thr_max is consistent
-    std::vector<Double_t> allCombined;
-    allCombined.insert(allCombined.end(), cosmicBDE.begin(),   cosmicBDE.end());
-    allCombined.insert(allCombined.end(), neutrinoBDE.begin(), neutrinoBDE.end());
-    allCombined.insert(allCombined.end(), hnlBDE.begin(),      hnlBDE.end());
-    std::sort(allCombined.begin(), allCombined.end());
-
-    TGraph* effCos = calculateEfficiency(cosmicBDE,   allCombined, thr_min, nThreshold, Ntotal_cosmic);
-    TGraph* effNeu = calculateEfficiency(neutrinoBDE, allCombined, thr_min, nThreshold, Ntotal_neutrino);
-    TGraph* effHNL = calculateEfficiency(hnlBDE,      allCombined, thr_min, nThreshold, Ntotal_hnl);
-
-    // Spot-check at 8M
-    double cosmicEff8M = 100.0 * countAbove(cosmicBDE,   8e6) / Ntotal_cosmic;
-    double nuEff8M     = 100.0 * countAbove(neutrinoBDE, 8e6) / Ntotal_neutrino;
-    double hnlEff8M    = 100.0 * countAbove(hnlBDE,      8e6) / Ntotal_hnl;
-
-    std::cout << "\nEfficiency at 8M ADC:\n";
-    std::cout << "  Cosmic:       " << cosmicEff8M << " %\n";
-    std::cout << "  Nu + Cosmic:  " << nuEff8M     << " %\n";
-    std::cout << "  HNL:          " << hnlEff8M    << " %\n\n";
-
-    // --- Plot ---
     gStyle->SetOptStat(0);
     gStyle->SetTextFont(42);
     gStyle->SetTitleFont(42, "");
@@ -155,7 +129,7 @@ void efficiencyBDE() {
     titlePad->cd();
     TLatex* titletex = new TLatex(0.5, 0.5,
         "#splitline{                ADCSimpleWindow TA Algorithm Efficiency - BDE}"
-        "{NP02 Neutrino Trigger Study: Cosmic vs Neutrino + Cosmic vs HNL 20k ticks}");
+        "{NP02 Trigger Study: Cosmic vs #nu + Cosmic vs HNL + #nu + Cosmic | 20k ticks}");
     titletex->SetTextAlign(22);
     titletex->SetTextSize(0.35);
     titletex->SetTextFont(2);
@@ -189,15 +163,15 @@ void efficiencyBDE() {
     effNeu->Draw("LP SAME");
     effHNL->Draw("LP SAME");
 
-    TLegend* leg = new TLegend(0.5, 0.6, 0.87, 0.89);
+    TLegend* leg = new TLegend(0.5, 0.55, 0.87, 0.89);
     leg->SetTextFont(42);
     leg->SetTextSize(0.035);
     leg->SetBorderSize(0);
     leg->SetHeader("BDE (CRP 4+5)", "C");
-    leg->AddEntry(effCos, "Cosmic",         "lp");
-    leg->AddEntry(effNeu, "#nu + Cosmic",   "lp");
-    leg->AddEntry(effHNL, "HNL",            "lp");
+    leg->AddEntry(effCos, "Cosmic",              "lp");
+    leg->AddEntry(effNeu, "#nu + Cosmic",        "lp");
+    leg->AddEntry(effHNL, "HNL + #nu + Cosmic",  "lp");
     leg->Draw();
 
-    //c->SaveAs("efficiency_BDE_all.png");
+    c->SaveAs("efficiency_BDE_hnl_nu_cos.png");
 }
