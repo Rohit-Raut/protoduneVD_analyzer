@@ -7,10 +7,10 @@
 #include "TLatex.h"
 #include "TStyle.h"
 #include "TPad.h"
+#include "TLine.h"
 #include <iostream>
 #include <vector>
 #include <algorithm>
-
 TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData, const std::vector<Double_t>& otherData, double thr_min, int nThreshold, double Nprimary) {
     auto it_primary = std::lower_bound(primaryData.begin(), primaryData.end(), thr_min);
 
@@ -122,25 +122,27 @@ void efficiency_hnl_nu_cos() {
 
     TCanvas* c = new TCanvas("c", "BDE Efficiency", 800, 600);
 
-    TPad* titlePad = new TPad("titlePad", "", 0, 0.90, 1, 1);
-    titlePad->SetTopMargin(0);
-    titlePad->SetBottomMargin(0);
-    titlePad->Draw();
-    titlePad->cd();
-    TLatex* titletex = new TLatex(0.5, 0.5,
-        "#splitline{                ADCSimpleWindow TA Algorithm Efficiency - BDE}"
-        "{NP02 Trigger Study: Cosmic vs #nu + Cosmic vs HNL + #nu + Cosmic | 20k ticks}");
-    titletex->SetTextAlign(22);
-    titletex->SetTextSize(0.35);
-    titletex->SetTextFont(2);
-    titletex->Draw();
+//    TPad* titlePad = new TPad("titlePad", "", 0, 0.90, 1, 1);
+//    titlePad->SetTopMargin(0);
+//    titlePad->SetBottomMargin(0);
+//    titlePad->Draw();
+//    titlePad->cd();
+//    TLatex* titletex = new TLatex(0.5, 0.5,
+//        "#splitline{                ADCSimpleWindow TA Algorithm Efficiency - BDE}"
+//        "{NP02 Trigger Study: Cosmic vs #nu + Cosmic vs HNL + #nu + Cosmic | 20k ticks}");
+//    titletex->SetTextAlign(22);
+//    titletex->SetTextSize(0.35);
+//    titletex->SetTextFont(2);
+//    titletex->Draw();
 
-    c->cd();
-    TPad* plotPad = new TPad("plotPad", "", 0, 0, 1, 0.90);
+//    c->cd();
+    TPad* plotPad = new TPad("plotPad", "", 0, 0, 1, 1);
     plotPad->Draw();
     plotPad->cd();
+    plotPad->SetTopMargin(0.06);
     plotPad->SetRightMargin(0.08);
     plotPad->SetLeftMargin(0.12);
+    plotPad->SetGridy();
 
     effCos->SetLineColor(kBlue);  effCos->SetLineWidth(3);
     effCos->SetMarkerStyle(20);   effCos->SetMarkerSize(0.7);
@@ -154,7 +156,7 @@ void efficiency_hnl_nu_cos() {
     effHNL->SetMarkerStyle(22);   effHNL->SetMarkerSize(0.7);
     effHNL->SetMarkerColorAlpha(kRed, 0.6);
 
-    effCos->SetTitle("BDE;ADC Integral Sum Cut (ADC);Trigger Efficiency [%]");
+    effCos->SetTitle(";ADC Integral Sum Cut (ADC);Trigger Efficiency [%]");
     effCos->GetHistogram()->SetMinimum(0);
     effCos->GetHistogram()->SetMaximum(105);
     effCos->GetXaxis()->SetLimits(1e5, 40e6);
@@ -163,15 +165,80 @@ void efficiency_hnl_nu_cos() {
     effNeu->Draw("LP SAME");
     effHNL->Draw("LP SAME");
 
+    auto getEff = [](TGraph* g, double x){
+	Double_t *xp = g->GetX(), *yp = g->GetY();
+	for(int i = 0; i<g->GetN()-1; i++){
+	    if(xp[i]<=x && xp[i+1]>=x){
+		double f =  (x-xp[i])/(xp[i+1] - xp[i]);
+		return yp[i]+f*(yp[i+1]-yp[i]);
+	    }
+	}
+	return -1.0;
+    };
+
+    double thrLine[] = {5e6, 6e6, 7e6, 8e6};
+    for (int t = 0; t<4; t++){
+	TLine* l =new TLine(thrLine[t], 0, thrLine[t], 105);
+	l->SetLineColor(kGray+2);
+	l->SetLineStyle(7);
+	l->SetLineWidth(1);
+	l->Draw();
+
+	double eCos = getEff(effCos, thrLine[t]);
+	double eNU = getEff(effNeu, thrLine[t]);
+	double eHNL = getEff(effHNL, thrLine[t]);
+
+	TLatex lt;
+	lt.SetTextSize(0.025);
+	lt.SetTextFont(42);
+	lt.SetTextAlign(12);
+        double xoff = thrLine[t] + 0.3e6;
+
+        lt.SetTextColor(kBlue);
+        lt.DrawLatex(xoff, eCos, Form("%.1f%%", eCos));
+        lt.SetTextColor(kBlack);
+        lt.DrawLatex(xoff, eNU, Form("%.1f%%", eNU));
+        lt.SetTextColor(kRed);
+        lt.DrawLatex(xoff, eHNL, Form("%.1f%%", eHNL));
+
+    }
+        
+
+
     TLegend* leg = new TLegend(0.5, 0.55, 0.87, 0.89);
     leg->SetTextFont(42);
     leg->SetTextSize(0.035);
     leg->SetBorderSize(0);
-    leg->SetHeader("BDE (CRP 4+5)", "C");
+    leg->SetFillStyle(4000);
+    //leg->SetHeader("BDE (CRP 4+5)", "C");
     leg->AddEntry(effCos, "Cosmic",              "lp");
     leg->AddEntry(effNeu, "#nu + Cosmic",        "lp");
     leg->AddEntry(effHNL, "HNL + #nu + Cosmic",  "lp");
     leg->Draw();
+
+    //TPad
+    c->cd();
+    TPad* headerPad = new TPad("heaaderPad", "", 0, 0.88, 1, 1);
+    headerPad->SetTopMargin(0);
+    headerPad->SetBottomMargin(0);
+    headerPad->SetLeftMargin(0.12);
+    headerPad->SetRightMargin(0.15);
+    headerPad->SetFillStyle(4000);
+    headerPad->Draw();
+    headerPad->cd();
+
+    TLatex tex;
+    tex.SetNDC();
+    tex.SetTextFont(42);
+    tex.SetTextSize(0.55);
+
+    tex.SetTextAlign(11);
+    tex.DrawLatex(0.12, 0.15, "#bf{DUNE} #it{Simulation}");
+    tex.SetTextAlign(21);
+    tex.DrawLatex(0.50, 0.15, "BDE (CRP 4 + CRP 5)");
+    tex.SetTextAlign(31);
+    tex.DrawLatex(0.88, 0.14, "#bf{NP02}");
+
 
     c->SaveAs("efficiency_BDE_hnl_nu_cos.png");
 }
