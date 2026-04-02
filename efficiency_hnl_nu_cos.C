@@ -157,14 +157,9 @@ void efficiency_hnl_nu_cos() {
     effHNL->SetMarkerColorAlpha(kRed, 0.6);
 
     effCos->SetTitle(";ADC Integral Sum Cut (ADC);Trigger Efficiency [%]");
-
-    effCos->Draw("ALP");
-    effNeu->Draw("LP SAME");
-    effHNL->Draw("LP SAME");
     effCos->GetHistogram()->SetMinimum(0);
     effCos->GetHistogram()->SetMaximum(105);
     effCos->GetXaxis()->SetLimits(1e5, 40e6);
-
     auto getEff = [](TGraph* g, double x){
 	Double_t *xp = g->GetX(), *yp = g->GetY();
 	for(int i = 0; i<g->GetN()-1; i++){
@@ -203,6 +198,11 @@ void efficiency_hnl_nu_cos() {
 
     }
         
+
+    effCos->Draw("ALP");
+    effNeu->Draw("LP SAME");
+    effHNL->Draw("LP SAME");
+
 
 
     TLegend* leg = new TLegend(0.5, 0.55, 0.87, 0.89);
