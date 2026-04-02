@@ -157,13 +157,13 @@ void efficiency_hnl_nu_cos() {
     effHNL->SetMarkerColorAlpha(kRed, 0.6);
 
     effCos->SetTitle(";ADC Integral Sum Cut (ADC);Trigger Efficiency [%]");
-    effCos->GetHistogram()->SetMinimum(0);
-    effCos->GetHistogram()->SetMaximum(105);
-    effCos->GetXaxis()->SetLimits(1e5, 40e6);
 
     effCos->Draw("ALP");
     effNeu->Draw("LP SAME");
     effHNL->Draw("LP SAME");
+    effCos->GetHistogram()->SetMinimum(0);
+    effCos->GetHistogram()->SetMaximum(105);
+    effCos->GetXaxis()->SetLimits(1e5, 40e6);
 
     auto getEff = [](TGraph* g, double x){
 	Double_t *xp = g->GetX(), *yp = g->GetY();
@@ -218,19 +218,20 @@ void efficiency_hnl_nu_cos() {
 
     //TPad
     c->cd();
-    TPad* headerPad = new TPad("heaaderPad", "", 0, 0.88, 1, 1);
-    headerPad->SetTopMargin(0);
-    headerPad->SetBottomMargin(0);
-    headerPad->SetLeftMargin(0.12);
-    headerPad->SetRightMargin(0.15);
+    TPad* headerPad = new TPad("heaaderPad", "", 0, 0.95, 1, 1);
+    //headerPad->SetTopMargin(0);
+    //headerPad->SetBottomMargin(0);
+    //headerPad->SetLeftMargin(0.12);
+    //headerPad->SetRightMargin(0.15);
     headerPad->SetFillStyle(4000);
+    headerPad->SetFillColor(0);
     headerPad->Draw();
     headerPad->cd();
 
     TLatex tex;
     tex.SetNDC();
     tex.SetTextFont(42);
-    tex.SetTextSize(0.55);
+    tex.SetTextSize(0.65);
 
     tex.SetTextAlign(11);
     tex.DrawLatex(0.12, 0.15, "#bf{DUNE} #it{Simulation}");
