@@ -72,9 +72,11 @@ void efficiency_all_DUNE() {
     // ----------------------------------------------------------------
     //  Open files
     // ----------------------------------------------------------------
-    TFile* fCos = TFile::Open("../Cosmic_Pdune_1MADC_20kticks_10k.root", "READ");
-    TFile* fNu  = TFile::Open("../Nu+Cosmic_Pdune_1MADC_20kticks.root",  "READ");
-    TFile* fHNL = TFile::Open("../hnl_cosmic_nu_mc.root",                "READ");
+    TFile* fCos = TFile::Open("/project/dune/pdvd_run/analysis_trigger/Cosmic_MC_15kticks_1k.root", "READ");
+    TFile* fNu  = TFile::Open("/project/dune/pdvd_run/analysis_trigger/NU_Cosmic_MC_15kticks_1k.root",  "READ");
+    TFile* fHNL = TFile::Open("../hnl_cosmic_nu_mc.root", "READ");
+    
+    //TFile* fHNL = TFile::Open("/project/dune/pdvd_run/analysis_trigger/hnl_cosmic_nu_mc.root",                "READ");
 
     if (!fCos || fCos->IsZombie() ||
         !fNu  || fNu ->IsZombie() ||
@@ -101,10 +103,12 @@ void efficiency_all_DUNE() {
     fillBDEVector(tHNL, vHNL);
 
     // Total simulated events per sample (denominator for efficiency)
-    const double N_cos = 10000.0;
-    const double N_nu  = 10000.0;
-    const double N_hnl = 935.0;
-
+    //const double N_cos = 10000.0;
+    //const double N_nu  = 9980;
+    //const double N_hnl = 935.0;
+    const double N_cos = static_cast<double>(vCos.size());
+    const double N_nu = static_cast<double>(vNu.size());
+    const double N_hnl = static_cast<double>(vHNL.size());
     auto nAbove = [](const std::vector<Double_t>& v, double thr) -> ptrdiff_t {
         return std::distance(std::lower_bound(v.begin(), v.end(), thr), v.end());
     };
@@ -165,7 +169,7 @@ void efficiency_all_DUNE() {
     // ----------------------------------------------------------------
     TCanvas* c = new TCanvas("c_eff_all", "BDE Trigger Efficiency", 900, 650);
     c->SetFillColor(kWhite);
-    c->SetTopMargin(0.105);
+    c->SetTopMargin(0.130);
     c->SetBottomMargin(0.125);
     c->SetLeftMargin(0.130);
     c->SetRightMargin(0.050);
@@ -174,9 +178,9 @@ void efficiency_all_DUNE() {
     gCos->Draw("ALP");
 
     // Axis range and formatting
-    gCos->GetXaxis()->SetTitle("ADC Integral Sum Threshold");
+    gCos->GetXaxis()->SetTitle("ADC Integral Sum Threshold [ADC]");
     gCos->GetYaxis()->SetTitle("Trigger Efficiency [%]");
-    gCos->GetXaxis()->SetLimits(1.0e6, 40.0e6);
+    gCos->GetXaxis()->SetLimits(0.3e6, 20.0e6);
     gCos->GetHistogram()->SetMinimum(0.0);
     gCos->GetHistogram()->SetMaximum(108.0);
 
@@ -217,25 +221,26 @@ void efficiency_all_DUNE() {
         double eNu  = interpEff(gNu,  thrRef[t]);
         double eHNL = interpEff(gHNL, thrRef[t]);
 
-        double xLab = thrRef[t] + 0.28e6;
+        double xLab = thrRef[t] - 0.4e6;
 
         // stagger vertically to avoid overlap: Cosmic slightly above,
         // Nu slightly below its natural position, HNL as-is
         lt.SetTextAlign(12);
-        lt.SetTextColor(colCos);  lt.DrawLatex(xLab, eCos + 1.2, Form("%.1f%%", eCos));
-        lt.SetTextColor(colNu);   lt.DrawLatex(xLab, eNu  - 2.8, Form("%.1f%%", eNu));
-        lt.SetTextColor(colHNL);  lt.DrawLatex(xLab, eHNL + 1.2, Form("%.1f%%", eHNL));
+        lt.SetTextColor(colCos);  lt.DrawLatex(xLab, eCos + 4.0, Form("%.1f%%", eCos));
+        lt.SetTextColor(colNu);   lt.DrawLatex(xLab, eNu  + 3.8, Form("%.1f%%", eNu));
+        lt.SetTextColor(colHNL);  lt.DrawLatex(xLab, eHNL + 4.0, Form("%.1f%%", eHNL));
     }
 
     // ----------------------------------------------------------------
     //  Legend
     // ----------------------------------------------------------------
-    TLegend* leg = new TLegend(0.515, 0.50, 0.915, 0.775);
+    TLegend* leg = new TLegend(0.515, 0.52, 0.915, 0.735);
     leg->SetTextFont(42);
     leg->SetTextSize(0.040);
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
-    leg->SetHeader("BDE (CRP 4 + CRP 5)", "C");
+    leg->SetMargin(0.20);
+//    leg->SetHeader("BDE (CRP 4 + CRP 5)", "C");
     leg->AddEntry(gCos, "Cosmic",             "lp");
     leg->AddEntry(gNu,  "#nu + Cosmic",       "lp");
     leg->AddEntry(gHNL, "HNL + #nu + Cosmic", "lp");
@@ -247,25 +252,30 @@ void efficiency_all_DUNE() {
     TLatex hdr;
     hdr.SetNDC();
     hdr.SetTextFont(42);
+    
+    hdr.SetTextAlign(21);
+    hdr.SetTextSize(0.050);
+    hdr.DrawLatex(0.520, 0.93, "#bf{NP02 Trigger Efficiency: HNLs vs Nu + Cosmic}");
 
     // Left: "DUNE  Simulation"
     hdr.SetTextAlign(11);
-    hdr.SetTextSize(0.047);
-    hdr.DrawLatex(0.130, 0.912, "#bf{DUNE} #it{Simulation}");
+    hdr.SetTextSize(0.030);
+    hdr.DrawLatex(0.130, 0.88, "#bf{ProtoDUNE} #it{Simulation}");
 
     // Centre: sub-title
     hdr.SetTextAlign(21);
-    hdr.SetTextSize(0.036);
-    hdr.DrawLatex(0.490, 0.912, "ADCSimpleWindow TA  |  BDE  |  20k ticks");
+    hdr.SetTextSize(0.025);
+    hdr.DrawLatex(0.55, 0.88, "#bf{ADCSimpleThreshold : BDE : 20k ticks}");
+
 
     // Right: experiment label
     hdr.SetTextAlign(31);
-    hdr.SetTextSize(0.042);
-    hdr.DrawLatex(0.950, 0.912, "#bf{NP02}");
+    hdr.SetTextSize(0.030);
+    hdr.DrawLatex(0.950, 0.88, "#bf{NP02}");
 
     c->Update();
-    c->SaveAs("efficiency_all_DUNE_style.png");
-    c->SaveAs("efficiency_all_DUNE_style.pdf");
+//    c->SaveAs("efficiency_all_DUNE_style.png");
+//    c->SaveAs("efficiency_all_DUNE_style.pdf");
 
     std::cout << "Saved: efficiency_all_DUNE_style.png / .pdf\n";
 }

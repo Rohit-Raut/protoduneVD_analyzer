@@ -34,8 +34,8 @@ TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData, const std:
 
 void efficiencyBDE() {
     //TFile* cosmic   = TFile::Open("../Cosmic_MC_3ms.root", "READ");
-    TFile* neutrino = TFile::Open("../Nu+Cosmic_Pdune_1MADC_20kticks.root", "READ");
-    TFile* cosmic = TFile::Open("../Cosmic_Pdune_1MADC_20kticks_10k.root", "READ");
+    TFile* neutrino = TFile::Open("/project/dune/pdvd_run/analysis_trigger/NU_Cosmic_MC_15kticks_1k.root", "READ");
+    TFile* cosmic = TFile::Open("/project/dune/pdvd_run/analysis_trigger/Cosmic_MC_15kticks_1k.root", "READ");
 
     if (!cosmic || cosmic->IsZombie() || !neutrino || neutrino->IsZombie()) {
         std::cout << "Error reading files" << std::endl;

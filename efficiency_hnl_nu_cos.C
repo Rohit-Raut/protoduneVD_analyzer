@@ -1,6 +1,7 @@
 #include "utils_NP02.hpp"
 #include "TFile.h"
 #include "TTree.h"
+#include "TH2F.h"
 #include "TCanvas.h"
 #include "TGraph.h"
 #include "TLegend.h"
@@ -13,9 +14,11 @@
 #include <algorithm>
 TGraph* calculateEfficiency(const std::vector<Double_t>& primaryData, const std::vector<Double_t>& otherData, double thr_min, int nThreshold, double Nprimary) {
     auto it_primary = std::lower_bound(primaryData.begin(), primaryData.end(), thr_min);
-
-    double thr_max = std::max(primaryData.back(), otherData.back());
-
+    double thr_max = 40e6;
+//    double thr_max = std::max(primaryData.back(), otherData.back());
+    if(!primaryData.empty() && !otherData.empty()){
+	thr_max = std::max(primaryData.back(), otherData.back());
+    }
     auto count_above = [](const std::vector<Double_t>& v, auto from, double thr) {
         return (double)std::distance(std::lower_bound(from, v.end(), thr), v.end());
     };
@@ -156,10 +159,6 @@ void efficiency_hnl_nu_cos() {
     effHNL->SetMarkerStyle(22);   effHNL->SetMarkerSize(0.7);
     effHNL->SetMarkerColorAlpha(kRed, 0.6);
 
-    effCos->SetTitle(";ADC Integral Sum Cut (ADC);Trigger Efficiency [%]");
-    effCos->GetHistogram()->SetMinimum(0);
-    effCos->GetHistogram()->SetMaximum(105);
-    effCos->GetXaxis()->SetLimits(1e5, 40e6);
     auto getEff = [](TGraph* g, double x){
 	Double_t *xp = g->GetX(), *yp = g->GetY();
 	for(int i = 0; i<g->GetN()-1; i++){
@@ -170,6 +169,13 @@ void efficiency_hnl_nu_cos() {
 	}
 	return -1.0;
     };
+    effCos->Draw("ALP");
+    effNeu->Draw("LP SAME");
+    effHNL->Draw("LP SAME");
+    effCos->SetTitle(";ADC Integral Sum Cut (ADC);Trigger Efficiency [%]");
+    effCos->GetHistogram()->SetMinimum(0);
+    effCos->GetHistogram()->SetMaximum(105);
+    effCos->GetXaxis()->SetLimits(1e5, 40e6);
 
     double thrLine[] = {5e6, 6e6, 7e6, 8e6};
     for (int t = 0; t<4; t++){
@@ -199,9 +205,6 @@ void efficiency_hnl_nu_cos() {
     }
         
 
-    effCos->Draw("ALP");
-    effNeu->Draw("LP SAME");
-    effHNL->Draw("LP SAME");
 
 
 
@@ -216,6 +219,8 @@ void efficiency_hnl_nu_cos() {
     leg->AddEntry(effHNL, "HNL + #nu + Cosmic",  "lp");
     leg->Draw();
 
+    plotPad->Update();
+    plotPad->Modified();
     //TPad
     c->cd();
     TPad* headerPad = new TPad("heaaderPad", "", 0, 0.95, 1, 1);
@@ -240,6 +245,7 @@ void efficiency_hnl_nu_cos() {
     tex.SetTextAlign(31);
     tex.DrawLatex(0.88, 0.14, "#bf{NP02}");
 
-
+    c->Modified();
+    c->Update();
     c->SaveAs("efficiency_BDE_hnl_nu_cos.png");
 }
